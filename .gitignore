@@ -17,3 +17,6 @@ node_modules/
 # Environment variables
 .env
 config/default.json
+
+#upload 
+uploads/
