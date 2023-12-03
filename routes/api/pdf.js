@@ -39,7 +39,7 @@ const storage1 = multer.diskStorage({
 const upload1 = multer({ storage: storage1 });
 
 //upload megered PDF
-router.post("/", upload.single("pdf"), async (req, res) => {
+router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
   try {
     const uploadedFile = req.file;
 
@@ -47,8 +47,6 @@ router.post("/", upload.single("pdf"), async (req, res) => {
       return res.status(400).send("No file uploaded");
     }
 
-    const pdfBytes = fs.readFileSync(uploadedFile.path);
-    const pdf = await PDFDocument.load(pdfBytes);
     // Process the uploaded PDF file here (e.g., save it, manipulate it, etc.)
     res.status(200).send(uploadedFile.filename);
   } catch (error) {
@@ -70,7 +68,7 @@ router.post("/delete", (req, res) => {
 });
 
 //upload splited pdf's Zip
-router.post("/splited_upload", upload1.single("file"), async (req, res) => {
+router.post("/zip_upload", upload1.single("file"), async (req, res) => {
   try {
     const uploadedFile = req.file;
 

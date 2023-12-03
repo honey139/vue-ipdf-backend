@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const path = require("path");
 const connectDB = require("./config/db");
 
 const app = express();
@@ -29,6 +30,13 @@ app.use("/api/pdf", require("./routes/api/pdf"));
 
 // Serve files from the 'uploads' directory
 app.use("/uploads", express.static("uploads"));
+
+app.get("/", (req, res) => {
+  res.send("Hello world");
+});
+
+// Serve static files from the 'dist' directory
+app.use(express.static(path.join(__dirname, "dist")));
 
 const PORT = process.env.PORT || 5000;
 
