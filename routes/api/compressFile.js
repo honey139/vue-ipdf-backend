@@ -1,0 +1,32 @@
+const { exec } = require("child_process");
+
+const expressFile = (files, level) => {
+  return new Promise((resolve, reject) => {
+    let outFiles = [];
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+      let inputFilePath = `temp_uploads\\${file.filename}`;
+      let outputFilePath = `temp_uploads\\${file.filename}_reduced.pdf`;
+
+      const ghostScriptCommand = `gswin64c -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
+
+      exec(ghostScriptCommand, (error, stdout, stderr) => {
+        if (error) {
+          reject(`Error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          reject(`stderr: ${stderr}`);
+          return;
+        }
+        console.log(313123123);
+        outFiles.push(outputFilePath);
+        if (outFiles.length == files.length) {
+          resolve(outFiles);
+        }
+      });
+    }
+  });
+};
+
+module.exports = expressFile;

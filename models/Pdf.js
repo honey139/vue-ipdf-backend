@@ -5,10 +5,10 @@ const PdfSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  date: {
+  uploadTime: {
     type: Date,
     default: Date.now,
   },
 });
 
-module.exports = User = mongoose.model("user", PdfSchema);
+module.exports = Pdf = mongoose.model("pdf", PdfSchema);

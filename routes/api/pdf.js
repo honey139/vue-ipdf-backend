@@ -7,6 +7,11 @@ const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
 const { PDFDocument } = require("pdf-lib");
 const fs = require("fs");
+const path = require("path");
+const archiver = require("archiver");
+const compressFiles = require("./compressFile");
+
+const Pdf = require("../../models/Pdf");
 
 // Set up Multer storage configuration
 const storage = multer.diskStorage({
@@ -38,10 +43,23 @@ const storage1 = multer.diskStorage({
 // Create a Multer instance with the configured storage(splited pdf)
 const upload1 = multer({ storage: storage1 });
 
+const storage2 = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "temp_uploads//"); // Destination folder for uploaded files
+  },
+  filename: function (req, file, cb) {
+    // Rename the file - you can customize this as needed
+    cb(null, `${Date.now()}.pdf`);
+  },
+});
+
+const upload2 = multer({ storage: storage2 });
+
 //upload megered PDF
 router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
   try {
     const uploadedFile = req.file;
+    const newPdf = await Pdf.create({ name: uploadedFile.filename });
 
     if (!uploadedFile) {
       return res.status(400).send("No file uploaded");
@@ -94,6 +112,96 @@ router.get("/download/:fileName", (req, res) => {
       res.status(500).send("Error downloading the file");
     }
   });
+});
+
+//Endpoint for express-files
+router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
+  // req.files contains the uploaded files
+  console.log(req.body.level);
+  let level=req.body.level
+  let files = req.files;
+  compressFiles(files, level)
+    .then((outfiles) => {
+      if (outfiles.length > 1) {
+        const parentDirectory = path.join(__dirname, "../../uploads/"); // Parent directory path
+        const directoryPath = "./temp_uploads/"; // temp_directory
+        // Create a zip file in the parent directory
+        const uploaded_zip = `${Date.now()}.zip`;
+        const zipFileName = path.join(parentDirectory, uploaded_zip);
+        const output = fs.createWriteStream(zipFileName);
+        const archive = archiver("zip", {
+          zlib: { level: 9 }, // Compression level (0-9)
+        });
+
+        output.on("close", () => {
+          fs.readdir(directoryPath, (err, files) => {
+            if (err) {
+              console.error("Error reading directory:", err);
+              return;
+            }
+
+            files.forEach((file) => {
+              const filePath = path.join(directoryPath, file);
+
+              fs.unlink(filePath, (err) => {
+                if (err) {
+                  console.error(`Error deleting file ${file}:`, err);
+                } else {
+                  console.log(`Deleted file: ${file}`);
+                }
+              });
+            });
+          });
+
+          const newPdf = Pdf.create({ name: uploaded_zip });
+          res.send(uploaded_zip);
+        });
+
+        archive.on("error", (err) => {
+          res.status(500).send({ error: `Error creating zip: ${err}` });
+        });
+
+        archive.pipe(output);
+
+        // Add PDF files to the zip file
+        outfiles.forEach((pdfFile) => {
+          archive.file(pdfFile, { name: pdfFile });
+        });
+
+        archive.finalize();
+      } else {
+        const sourcePath = outfiles[0]; // Replace with the path to the source file
+        const uploaded_pdf = `${Date.now()}.pdf`;
+        const destinationPath = `./uploads/${uploaded_pdf}`; // Replace with the path to the destination
+        //delete origin file
+        files.forEach(async (file) => {
+          try {
+            // Delete file from storage (assuming files are stored in a directory)
+            fs.unlinkSync(`./temp_uploads/${file.filename}`);
+
+            // Delete file from the database
+            await Pdf.findByIdAndDelete(file._id);
+            console.log(`File ${file.filename} deleted.`);
+          } catch (error) {
+            console.error(`Error deleting file ${file.filename}:`, error);
+          }
+        });
+
+        // Move file from source directory to destination directory
+        fs.rename(sourcePath, destinationPath, (err) => {
+          if (err) {
+            console.error("Error moving file:", err);
+          } else {
+            console.log("File moved successfully!");
+            const newPdf = Pdf.create({ name: uploaded_pdf });
+            res.send(uploaded_pdf);
+          }
+        });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 });
 
 module.exports = router;

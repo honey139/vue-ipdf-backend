@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
+const cron = require("node-cron");
 const connectDB = require("./config/db");
+const deleteOldFiles = require("./oldFileDelete/deleteOldFiles");
 
 const app = express();
 
@@ -34,6 +36,14 @@ app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => {
   res.send("Hello world");
 });
+
+// Schedule the deletion task to run every hour
+cron.schedule("0 * * * *", () => {
+  deleteOldFiles();
+});
+
+// Example: Run the task immediately on server start (optional)
+deleteOldFiles();
 
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, "dist")));
