@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const archiver = require("archiver");
 const compressFiles = require("./compressFile");
+const fileSize = require("./fileSize");
 
 const Pdf = require("../../models/Pdf");
 
@@ -81,7 +82,10 @@ router.post("/delete", (req, res) => {
     if (err) {
       res.status(500).send(err);
     }
-    res.send("delete success");
+    Pdf.deleteOne({ name: req.body.file }).then(() => {
+      console.log("file name deleted from DB");
+      res.send("delete success");
+    });
   });
 });
 
@@ -114,11 +118,21 @@ router.get("/download/:fileName", (req, res) => {
   });
 });
 
+//get file updated time
+router.get("/time/:name", async (req, res) => {
+  console.log(req.params.name);
+  await Pdf.findOne({ name: req.params.name })
+    .then((data) => {
+      res.status(200).send(data.uploadTime);
+    })
+    .catch((err) => res.status(500).send("File not found"));
+});
+
 //Endpoint for express-files
 router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
   // req.files contains the uploaded files
   console.log(req.body.level);
-  let level=req.body.level
+  let level = req.body.level;
   let files = req.files;
   compressFiles(files, level)
     .then((outfiles) => {
@@ -154,7 +168,10 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
           });
 
           const newPdf = Pdf.create({ name: uploaded_zip });
-          res.send(uploaded_zip);
+          fileSize(`./uploads/${uploaded_zip}`).then((size) => {
+            console.log(size);
+            res.send({ file: uploaded_zip, reSize: size });
+          });
         });
 
         archive.on("error", (err) => {
@@ -188,13 +205,16 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
         });
 
         // Move file from source directory to destination directory
-        fs.rename(sourcePath, destinationPath, (err) => {
+        fs.rename(sourcePath, destinationPath, async (err) => {
           if (err) {
             console.error("Error moving file:", err);
           } else {
             console.log("File moved successfully!");
             const newPdf = Pdf.create({ name: uploaded_pdf });
-            res.send(uploaded_pdf);
+            fileSize(`./uploads/${uploaded_pdf}`).then((size) => {
+              console.log(size);
+              res.send({ file: uploaded_pdf, reSize: size });
+            });
           }
         });
       }

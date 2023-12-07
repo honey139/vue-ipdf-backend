@@ -33,9 +33,9 @@ app.use("/api/pdf", require("./routes/api/pdf"));
 // Serve files from the 'uploads' directory
 app.use("/uploads", express.static("uploads"));
 
-app.get("/", (req, res) => {
-  res.send("Hello world");
-});
+// app.get("/", (req, res) => {
+//   res.send("Hello world");
+// });
 
 // Schedule the deletion task to run every hour
 cron.schedule("0 * * * *", () => {
@@ -46,7 +46,12 @@ cron.schedule("0 * * * *", () => {
 deleteOldFiles();
 
 // Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, "dist")));
+app.use(express.static(path.join(__dirname, "PDFJsAnnotations")));
+
+// Serve the index.html file for all routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "PDFJsAnnotations", "index.html"));
+});
 
 const PORT = process.env.PORT || 5000;
 
