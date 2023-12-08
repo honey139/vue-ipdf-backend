@@ -224,4 +224,35 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
     });
 });
 
+router.post("/upload_dropbox", async (req, res) => {
+  const fileName = req.body.fileName;
+  try {
+    const filePath = `./uploads/${fileName}`;
+    const fileContents = fs.readFileSync(filePath);
+
+    // Upload file to Dropbox
+    const dbx = new Dropbox.Dropbox({
+      accessToken: "YOUR_DROPBOX_ACCESS_TOKEN",
+    });
+    const response = await dbx({
+      resource: "files/upload",
+      parameters: {
+        path: "/path/in/dropbox/file.txt", // Update with the desired path in Dropbox
+      },
+      readStream: fileContents,
+    });
+
+    res.json({
+      success: true,
+      message: "File uploaded to Dropbox",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error uploading file to Dropbox:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error uploading file to Dropbox" });
+  }
+});
+
 module.exports = router;
