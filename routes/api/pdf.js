@@ -46,7 +46,7 @@ const upload1 = multer({ storage: storage1 });
 
 const storage2 = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "temp_uploads//"); // Destination folder for uploaded files
+    cb(null, "temp_uploads/"); // Destination folder for uploaded files
   },
   filename: function (req, file, cb) {
     // Rename the file - you can customize this as needed
@@ -75,14 +75,14 @@ router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
 });
 
 //delete merged pdf files
-router.post("/delete/:file", (req, res) => {
+router.get("/delete/:file", (req, res) => {
   console.log(req.params.file);
-  const filePath = `uploads/${req.body.file}`; // Replace this with the path to your file
+  const filePath = `uploads/${req.params.file}`; // Replace this with the path to your file
   fs.unlink(filePath, (err) => {
     if (err) {
       res.status(500).send(err);
     }
-    Pdf.deleteOne({ name: req.body.file }).then(() => {
+    Pdf.deleteOne({ name: req.params.file }).then(() => {
       console.log("file name deleted from DB");
       res.send("delete success");
     });
@@ -113,7 +113,7 @@ router.get("/download/:fileName", (req, res) => {
   res.download(filePath, fileName, (err) => {
     if (err) {
       console.error("Error downloading file:", err);
-      res.status(500).send("Error downloading the file");
+      res.status(500).send("File not existing");
     }
   });
 });
