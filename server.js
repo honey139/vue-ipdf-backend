@@ -19,9 +19,9 @@ app.use(bodyParser.json());
 // Connect Database
 connectDB();
 
-// app.get("/", (req, res) => {
-//   res.send("API running");
-// });
+app.get("/", (req, res) => {
+  res.send("API running");
+});
 
 // Define Routes
 app.use("/api/users", require("./routes/api/users"));
@@ -31,11 +31,13 @@ app.use("/api/posts", require("./routes/api/posts"));
 app.use("/api/pdf", require("./routes/api/pdf"));
 
 // Serve files from the 'uploads' directory
-app.use("/uploads", express.static("uploads"));
 
-// app.get("/", (req, res) => {
-//   res.send("Hello world");
-// });
+// Expose a route to serve the PDF file
+app.get("/uploads/:filename", (req, res) => {
+  console.log(12, "uploading");
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "uploads", filename));
+});
 
 // Schedule the deletion task to run every hour
 cron.schedule("0 * * * *", () => {

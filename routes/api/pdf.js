@@ -75,9 +75,9 @@ router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
 });
 
 //delete merged pdf files
-router.post("/delete", (req, res) => {
+router.post("/delete/:file", (req, res) => {
+  console.log(req.params.file);
   const filePath = `uploads/${req.body.file}`; // Replace this with the path to your file
-
   fs.unlink(filePath, (err) => {
     if (err) {
       res.status(500).send(err);
