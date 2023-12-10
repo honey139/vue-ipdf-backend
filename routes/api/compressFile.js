@@ -8,8 +8,8 @@ const expressFile = (files, level) => {
       let inputFilePath = `temp_uploads/${file.filename}`;
       let outputFilePath = `temp_uploads/${file.filename}_reduced.pdf`;
 
-      // const ghostScriptCommand = `gswin64c -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
-      const ghostScriptCommand = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
+      const ghostScriptCommand = `gswin64c -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
+      // const ghostScriptCommand = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
 
       exec(ghostScriptCommand, (error, stdout, stderr) => {
         if (error) {
