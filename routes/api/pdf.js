@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("config");
+const { exec } = require("child_process");
 const multer = require("multer");
 const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
@@ -11,6 +12,8 @@ const path = require("path");
 const archiver = require("archiver");
 const compressFiles = require("./compressFile");
 const fileSize = require("./fileSize");
+var docxConverter = require("docx-pdf");
+const wordToPdf = require("./wordToPdf");
 
 const Pdf = require("../../models/Pdf");
 
@@ -50,11 +53,23 @@ const storage2 = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     // Rename the file - you can customize this as needed
-    cb(null, `${Date.now()}.pdf`);
+    cb(null, uuidv4() + ".pdf");
   },
 });
 
 const upload2 = multer({ storage: storage2 });
+
+const storage3 = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "temp_uploads/"); // Destination folder for uploaded files
+  },
+  filename: function (req, file, cb) {
+    // Rename the file - you can customize this as needed
+    cb(null, uuidv4() + ".docx");
+  },
+});
+
+const upload3 = multer({ storage: storage3 });
 
 //upload megered PDF
 router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
@@ -182,7 +197,9 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
 
         // Add PDF files to the zip file
         outfiles.forEach((pdfFile) => {
-          archive.file(pdfFile, { name: pdfFile });
+          archive.file(pdfFile, {
+            name: `${files[index].originalname.split(".")[0]}_compressed.pdf`,
+          });
         });
 
         archive.finalize();
@@ -224,35 +241,89 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
     });
 });
 
-router.post("/upload_dropbox", async (req, res) => {
-  const fileName = req.body.fileName;
-  try {
-    const filePath = `./uploads/${fileName}`;
-    const fileContents = fs.readFileSync(filePath);
+router.post("/wordtopdf", upload3.array("files"), async (req, res) => {
+  // req.files contains the uploaded files
+  let files = req.files;
+  console.log(files);
+  wordToPdf(files).then((outfiles) => {
+    if (outfiles.length > 1) {
+      const parentDirectory = path.join(__dirname, "../../uploads/"); // Parent directory path
+      const directoryPath = "./temp_uploads/"; // temp_directory
+      // Create a zip file in the parent directory
+      const uploaded_zip = `${Date.now()}.zip`;
+      const zipFileName = path.join(parentDirectory, uploaded_zip);
+      const output = fs.createWriteStream(zipFileName);
+      const archive = archiver("zip", {
+        zlib: { level: 9 }, // Compression level (0-9)
+      });
 
-    // Upload file to Dropbox
-    const dbx = new Dropbox.Dropbox({
-      accessToken: "YOUR_DROPBOX_ACCESS_TOKEN",
-    });
-    const response = await dbx({
-      resource: "files/upload",
-      parameters: {
-        path: "/path/in/dropbox/file.txt", // Update with the desired path in Dropbox
-      },
-      readStream: fileContents,
-    });
+      output.on("close", () => {
+        fs.readdir(directoryPath, (err, files) => {
+          if (err) {
+            console.error("Error reading directory:", err);
+            return;
+          }
 
-    res.json({
-      success: true,
-      message: "File uploaded to Dropbox",
-      data: response,
-    });
-  } catch (error) {
-    console.error("Error uploading file to Dropbox:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Error uploading file to Dropbox" });
-  }
+          files.forEach((file) => {
+            const filePath = path.join(directoryPath, file);
+
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.error(`Error deleting file ${file}:`, err);
+              } else {
+                console.log(`Deleted file: ${file}`);
+              }
+            });
+          });
+        });
+        res.send(uploaded_zip);
+      });
+
+      archive.on("error", (err) => {
+        res.status(500).send({ error: `Error creating zip: ${err}` });
+      });
+
+      archive.pipe(output);
+
+      // Add PDF files to the zip file
+      outfiles.forEach((pdfFile, index) => {
+        archive.file(pdfFile, {
+          name: `${files[index].originalname.split(".")[0]}.pdf`,
+        });
+      });
+
+      archive.finalize();
+    } else {
+      const sourcePath = outfiles[0]; // Replace with the path to the source file
+      const uploaded_pdf = `${Date.now()}.pdf`;
+      const destinationPath = `./uploads/${uploaded_pdf}`; // Replace with the path to the destination
+      //delete origin file
+      files.forEach(async (file) => {
+        try {
+          // Delete file from storage (assuming files are stored in a directory)
+          fs.unlinkSync(`./temp_uploads/${file.filename}`);
+
+          // Delete file from the database
+          await Pdf.findByIdAndDelete(file._id);
+          console.log(`File ${file.filename} deleted.`);
+        } catch (error) {
+          console.error(`Error deleting file ${file.filename}:`, error);
+        }
+      });
+
+      // Move file from source directory to destination directory
+      fs.rename(sourcePath, destinationPath, async (err) => {
+        if (err) {
+          console.error("Error moving file:", err);
+        } else {
+          console.log("File moved successfully!");
+          const newPdf = Pdf.create({ name: uploaded_pdf });
+
+          res.send(uploaded_pdf);
+        }
+      });
+    }
+  });
 });
 
 module.exports = router;
