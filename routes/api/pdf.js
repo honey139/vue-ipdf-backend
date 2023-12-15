@@ -14,6 +14,7 @@ const compressFiles = require("./compressFile");
 const fileSize = require("./fileSize");
 var docxConverter = require("docx-pdf");
 const wordToPdf = require("./wordToPdf");
+const pdfToWord = require("./pdfToWord");
 
 const Pdf = require("../../models/Pdf");
 
@@ -243,9 +244,10 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
 
 router.post("/wordtopdf", upload3.array("files"), async (req, res) => {
   // req.files contains the uploaded files
+  let degree = req.body.degrees.split(",");
   let files = req.files;
-  console.log(files);
-  wordToPdf(files).then((outfiles) => {
+  console.log(degree);
+  wordToPdf(files, degree).then((outfiles) => {
     if (outfiles.length > 1) {
       const parentDirectory = path.join(__dirname, "../../uploads/"); // Parent directory path
       const directoryPath = "./temp_uploads/"; // temp_directory
@@ -326,4 +328,102 @@ router.post("/wordtopdf", upload3.array("files"), async (req, res) => {
   });
 });
 
+router.post("/pdf_to_word", upload2.array("files"), async (req, res) => {
+  let degree = req.body.degrees;
+  let files = req.files;
+  console.log(degree);
+  console.log(files);
+  pdfToWord(files).then(console.log("success"));
+  // compressFiles(files, level)
+  //   .then((outfiles) => {
+  //     if (outfiles.length > 1) {
+  //       const parentDirectory = path.join(__dirname, "../../uploads/"); // Parent directory path
+  //       const directoryPath = "./temp_uploads/"; // temp_directory
+  //       // Create a zip file in the parent directory
+  //       const uploaded_zip = `${Date.now()}.zip`;
+  //       const zipFileName = path.join(parentDirectory, uploaded_zip);
+  //       const output = fs.createWriteStream(zipFileName);
+  //       const archive = archiver("zip", {
+  //         zlib: { level: 9 }, // Compression level (0-9)
+  //       });
+
+  //       output.on("close", () => {
+  //         fs.readdir(directoryPath, (err, files) => {
+  //           if (err) {
+  //             console.error("Error reading directory:", err);
+  //             return;
+  //           }
+
+  //           files.forEach((file) => {
+  //             const filePath = path.join(directoryPath, file);
+
+  //             fs.unlink(filePath, (err) => {
+  //               if (err) {
+  //                 console.error(`Error deleting file ${file}:`, err);
+  //               } else {
+  //                 console.log(`Deleted file: ${file}`);
+  //               }
+  //             });
+  //           });
+  //         });
+
+  //         const newPdf = Pdf.create({ name: uploaded_zip });
+  //         fileSize(`./uploads/${uploaded_zip}`).then((size) => {
+  //           console.log(size);
+  //           res.send({ file: uploaded_zip, reSize: size });
+  //         });
+  //       });
+
+  //       archive.on("error", (err) => {
+  //         res.status(500).send({ error: `Error creating zip: ${err}` });
+  //       });
+
+  //       archive.pipe(output);
+
+  //       // Add PDF files to the zip file
+  //       outfiles.forEach((pdfFile) => {
+  //         archive.file(pdfFile, {
+  //           name: `${files[index].originalname.split(".")[0]}_compressed.pdf`,
+  //         });
+  //       });
+
+  //       archive.finalize();
+  //     } else {
+  //       const sourcePath = outfiles[0]; // Replace with the path to the source file
+  //       const uploaded_pdf = `${Date.now()}.pdf`;
+  //       const destinationPath = `./uploads/${uploaded_pdf}`; // Replace with the path to the destination
+  //       //delete origin file
+  //       files.forEach(async (file) => {
+  //         try {
+  //           // Delete file from storage (assuming files are stored in a directory)
+  //           fs.unlinkSync(`./temp_uploads/${file.filename}`);
+
+  //           // Delete file from the database
+  //           await Pdf.findByIdAndDelete(file._id);
+  //           console.log(`File ${file.filename} deleted.`);
+  //         } catch (error) {
+  //           console.error(`Error deleting file ${file.filename}:`, error);
+  //         }
+  //       });
+
+  //       // Move file from source directory to destination directory
+  //       fs.rename(sourcePath, destinationPath, async (err) => {
+  //         if (err) {
+  //           console.error("Error moving file:", err);
+  //         } else {
+  //           console.log("File moved successfully!");
+  //           const newPdf = Pdf.create({ name: uploaded_pdf });
+  //           fileSize(`./uploads/${uploaded_pdf}`).then((size) => {
+  //             console.log(size);
+  //             res.send({ file: uploaded_pdf, reSize: size });
+  //           });
+  //         }
+  //       });
+  //     }
+  //   })
+  //   .catch((error) => {
+  //     console.error(error);
+  //   });
+  res.send("success");
+});
 module.exports = router;
