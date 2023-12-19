@@ -1,11 +1,10 @@
 "use strict";
 
-const path = require("path");
-const fs = require("fs").promises;
 const { exec } = require("child_process");
 
 const libre = require("libreoffice-convert");
-libre.convertAsync = require("util").promisify(libre.convert);
+const { PythonShell } = require("python-shell");
+// libre.convertAsync = require("util").promisify(libre.convert);
 
 function wordToPdf(files) {
   return new Promise((resolve, reject) => {
@@ -15,22 +14,24 @@ function wordToPdf(files) {
       const sourceFilePath = await `temp_uploads/${file.filename}`;
       const outputFilePath = await `temp_uploads/${
         file.filename.split(".")[0]
-      }.docs`;
+      }.docx`;
 
-      // const libreOfficeCommand = `libreoffice --convert-to docx --outdir ${outputFilePath} ${sourceFilePath}`;
-      const libreOfficeCommand = `lowriter --headless --infilter=writer_pdf_import --convert-to doc:"MS Word 97" ${sourceFilePath}`;
+      // Options for the PythonShell
+      const options = {
+        scriptPath: "routes/api/", // Replace with the actual path to your Python script
+        args: [sourceFilePath, outputFilePath],
+      };
 
-      exec(libreOfficeCommand, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error converting PDF to Word: ${stderr}`);
-        } else {
-          console.log(`PDF successfully converted to Word: ${stdout}`);
-          outFiles.push(outputFilePath);
-          if (outFiles.length == files.length) {
-            resolve(outFiles);
-          }
-        }
+      //Run the Python Script
+
+      await PythonShell.run("convertPdfToWord.py", options, (err) => {
+        if (err) throw err;
       });
+      await outFiles.push(outputFilePath);
+      await console.log("success");
+      if (outFiles.length == files.length) {
+        resolve(outFiles);
+      }
     });
   });
 }
