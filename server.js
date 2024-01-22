@@ -34,7 +34,6 @@ app.use("/api/pdf", require("./routes/api/pdf"));
 
 // Expose a route to serve the PDF file
 app.get("/uploads/:filename", (req, res) => {
-  console.log(12, "uploading");
   const filename = req.params.filename;
   res.sendFile(path.join(__dirname, "uploads", filename));
 });
@@ -46,14 +45,6 @@ cron.schedule("0 * * * *", () => {
 
 // Example: Run the task immediately on server start (optional)
 deleteOldFiles();
-
-// Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, "PDFJsAnnotations")));
-
-// Serve the index.html file for all routes
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "PDFJsAnnotations", "index.html"));
-});
 
 const PORT = process.env.PORT || 5000;
 

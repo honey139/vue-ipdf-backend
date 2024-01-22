@@ -1,8 +1,5 @@
 "use strict";
 
-const { exec } = require("child_process");
-
-const libre = require("libreoffice-convert");
 const { PythonShell } = require("python-shell");
 // libre.convertAsync = require("util").promisify(libre.convert);
 

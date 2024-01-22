@@ -67,8 +67,18 @@ const storage3 = multer.diskStorage({
     cb(null, uuidv4() + ".docx");
   },
 });
-
 const upload3 = multer({ storage: storage3 });
+
+const storage4 = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Destination folder for uploaded files
+  },
+  filename: function (req, file, cb) {
+    // Rename the file - you can customize this as needed
+    cb(null, uuidv4() + ".png");
+  },
+});
+const upload4 = multer({ storage: storage4 });
 
 //upload megered PDF
 router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
@@ -82,6 +92,52 @@ router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
 
     // Process the uploaded PDF file here (e.g., save it, manipulate it, etc.)
     res.status(200).send(uploadedFile.filename);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error processing file");
+  }
+});
+
+//upload edited_pdf_upload
+router.post("/edited_pdf_upload", upload.single("files"), async (req, res) => {
+  try {
+    const uploadedFile = req.file;
+    const newPdf = await Pdf.create({ name: uploadedFile.filename });
+
+    if (!uploadedFile) {
+      return res.status(400).send("No file uploaded");
+    }
+    const deletes = req.body.deletes;
+    const files = deletes.split(",");
+    console.log(files);
+
+    files.forEach((file) => {
+      const filePath = path.join("./uploads/", file);
+
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error deleting file ${file}:`, err);
+        } else {
+          console.log(`Deleted file: ${file}`);
+        }
+      });
+    });
+
+    // Process the uploaded PDF file here (e.g., save it, manipulate it, etc.)
+    res.status(200).send(uploadedFile.filename);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error processing file");
+  }
+});
+
+//upload png files
+router.post("/png_upload", upload4.array("files"), async (req, res) => {
+  try {
+    let files = req.files;
+
+    // Process the uploaded PDF file here (e.g., save it, manipulate it, etc.)
+    res.status(200).send(files);
   } catch (error) {
     console.error(error);
     res.status(500).send("Error processing file");
@@ -132,6 +188,16 @@ router.get("/download/:fileName", (req, res) => {
   });
 });
 
+//get file name from DB
+router.post("/get_from_db", async (req, res) => {
+  console.log(req.body.name);
+  await Pdf.findOne({ name: req.body.name })
+    .then((data) => {
+      res.status(200).send(data);
+    })
+    .catch((err) => res.status(500).send("File not found"));
+});
+
 //get file updated time
 router.get("/time/:name", async (req, res) => {
   console.log(req.params.name);
@@ -145,7 +211,6 @@ router.get("/time/:name", async (req, res) => {
 //Endpoint for express-files
 router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
   // req.files contains the uploaded files
-  console.log(req.body.level);
   let level = req.body.level;
   let files = req.files;
   compressFiles(files, level)
