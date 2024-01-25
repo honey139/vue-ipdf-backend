@@ -5,9 +5,10 @@ const jwt = require("jsonwebtoken");
 
 const Rate = require("../../models/Rate");
 
-// @route    POST api/users
-// @desc     Register user
+// @route    POST comment/rate
+// @desc     set rate user
 // @access   Public
+
 router.post("/rate", (req, res) => {
   console.log(req.body);
   const rate = new Rate({
