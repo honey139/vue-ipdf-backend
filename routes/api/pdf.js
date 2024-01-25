@@ -163,6 +163,7 @@ router.get("/delete/:file", (req, res) => {
 router.post("/zip_upload", upload1.single("file"), async (req, res) => {
   try {
     const uploadedFile = req.file;
+    const newPdf = await Pdf.create({ name: uploadedFile.filename });
 
     if (!uploadedFile) {
       return res.status(400).send("No file uploaded");
