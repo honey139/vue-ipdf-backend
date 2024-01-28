@@ -342,6 +342,7 @@ router.post("/wordtopdf", upload3.array("files"), async (req, res) => {
             });
           });
         });
+        const newPdf = Pdf.create({ name: uploaded_zip });
         res.send(uploaded_zip);
       });
 
