@@ -25,7 +25,6 @@ function wordToPdf(files) {
         if (err) throw err;
       });
       await outFiles.push(outputFilePath);
-      await console.log("success");
       if (outFiles.length == files.length) {
         resolve(outFiles);
       }

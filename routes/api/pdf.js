@@ -93,7 +93,7 @@ router.post("/pdf_upload", upload.single("pdf"), async (req, res) => {
     // Process the uploaded PDF file here (e.g., save it, manipulate it, etc.)
     res.status(200).send(uploadedFile.filename);
   } catch (error) {
-    console.error(error);
+    console.error("error: " + error);
     res.status(500).send("Error processing file");
   }
 });
@@ -214,6 +214,7 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
   // req.files contains the uploaded files
   let level = req.body.level;
   let files = req.files;
+  console.log(files);
   compressFiles(files, level)
     .then((outfiles) => {
       if (outfiles.length > 1) {
@@ -240,9 +241,10 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
               fs.unlink(filePath, (err) => {
                 if (err) {
                   console.error(`Error deleting file ${file}:`, err);
-                } else {
-                  console.log(`Deleted file: ${file}`);
                 }
+                // else {
+                //   console.log(`Deleted file: ${file}`);
+                // }
               });
             });
           });
@@ -261,7 +263,7 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
         archive.pipe(output);
 
         // Add PDF files to the zip file
-        outfiles.forEach((pdfFile) => {
+        outfiles.forEach((pdfFile, index) => {
           archive.file(pdfFile, {
             name: `${files[index].originalname.split(".")[0]}_compressed.pdf`,
           });
@@ -336,9 +338,10 @@ router.post("/wordtopdf", upload3.array("files"), async (req, res) => {
             fs.unlink(filePath, (err) => {
               if (err) {
                 console.error(`Error deleting file ${file}:`, err);
-              } else {
-                console.log(`Deleted file: ${file}`);
               }
+              // else {
+              //   console.log(`Deleted file: ${file}`);
+              // }
             });
           });
         });
@@ -372,7 +375,7 @@ router.post("/wordtopdf", upload3.array("files"), async (req, res) => {
 
           // Delete file from the database
           await Pdf.findByIdAndDelete(file._id);
-          console.log(`File ${file.filename} deleted.`);
+          // console.log(`File ${file.filename} deleted.`);
         } catch (error) {
           console.error(`Error deleting file ${file.filename}:`, error);
         }

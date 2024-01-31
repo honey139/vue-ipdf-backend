@@ -19,9 +19,9 @@ app.use(bodyParser.json());
 // Connect Database
 connectDB();
 
-// app.get("/", (req, res) => {
-//   res.send("API running");
-// });
+app.get("/", (req, res) => {
+  res.send("API running");
+});
 
 // Define Routes
 app.use("/api/users", require("./routes/api/users"));
@@ -44,13 +44,13 @@ cron.schedule("0 * * * *", () => {
   deleteOldFiles();
 });
 
-// Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, "dist")));
+// // Serve static files from the 'dist' directory
+// app.use(express.static(path.join(__dirname, "dist")));
 
-// Handle any routes by serving the 'index.html' file
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
+// // Handle any routes by serving the 'index.html' file
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "dist", "index.html"));
+// });
 
 // Example: Run the task immediately on server start (optional)
 deleteOldFiles();
