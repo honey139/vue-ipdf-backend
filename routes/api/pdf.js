@@ -8,11 +8,13 @@ const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const path = require("path");
+const { PDFDocument } = require("pdf-lib");
 const archiver = require("archiver");
 const compressFiles = require("./compressFile");
 const fileSize = require("./fileSize");
 const wordToPdf = require("./wordToPdf");
 const pdfToWord = require("./pdfToWord");
+const splitPdf = require("./splitPdf");
 
 const Pdf = require("../../models/Pdf");
 
@@ -209,13 +211,100 @@ router.get("/time/:name", async (req, res) => {
     .catch((err) => res.status(500).send("File not found"));
 });
 
+//Endpoint for split_files
+router.post("/pdf_split", upload2.single("file"), async (req, res) => {
+  let items = JSON.parse(req.body.items);
+  let merge_flag = items.merge_flag;
+  let pages = items.pages;
+  file = req.file;
+  const data = await fs.promises.readFile(`temp_uploads/${file.filename}`);
+  const readPdf = await PDFDocument.load(data);
+  splitPdf(readPdf, pages, merge_flag, file.filename).then((outFiles) => {
+    compressFiles(outFiles, 100)
+      .then((outfiles) => {
+        if (outfiles.length > 1) {
+          const parentDirectory = path.join(__dirname, "../../uploads/"); // Parent directory path
+          const directoryPath = "./temp_uploads/"; // temp_directory
+          // Create a zip file in the parent directory
+          const uploaded_zip = `${Date.now()}.zip`;
+          const zipFileName = path.join(parentDirectory, uploaded_zip);
+          const output = fs.createWriteStream(zipFileName);
+          const archive = archiver("zip", {
+            zlib: { level: 9 }, // Compression level (0-9)
+          });
+
+          output.on("close", () => {
+            fs.readdir(directoryPath, (err, files) => {
+              if (err) {
+                console.error("Error reading directory:", err);
+                return;
+              }
+
+              files.forEach((file) => {
+                const filePath = path.join(directoryPath, file);
+
+                fs.unlink(filePath, (err) => {
+                  if (err) {
+                    console.error(`Error deleting file ${file}:`, err);
+                  }
+                });
+              });
+            });
+
+            const newPdf = Pdf.create({ name: uploaded_zip });
+            res.send(uploaded_zip);
+          });
+
+          archive.on("error", (err) => {
+            res.status(500).send({ error: `Error creating zip: ${err}` });
+          });
+
+          archive.pipe(output);
+
+          // Add PDF files to the zip file
+          outfiles.forEach((pdfFile, index) => {
+            archive.file(pdfFile, {
+              name: `${file.originalname.split(".")[0]}_splitted(${index}).pdf`,
+            });
+          });
+
+          archive.finalize();
+        } else {
+          const sourcePath = outfiles[0]; // Replace with the path to the source file
+          const uploaded_pdf = `${Date.now()}.pdf`;
+          const destinationPath = `./uploads/${uploaded_pdf}`; // Replace with the path to the destination
+          //delete origin file
+
+          fs.unlinkSync(`./temp_uploads/${file.filename}`);
+
+          // Move file from source directory to destination directory
+          fs.rename(sourcePath, destinationPath, async (err) => {
+            if (err) {
+              console.error("Error moving file:", err);
+            } else {
+              console.log("File moved successfully!");
+              const newPdf = Pdf.create({ name: uploaded_pdf });
+
+              res.send(uploaded_pdf);
+            }
+          });
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  });
+});
+
 //Endpoint for express-files
 router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
   // req.files contains the uploaded files
   let level = req.body.level;
   let files = req.files;
-  console.log(files);
-  compressFiles(files, level)
+  let names = files.map((file) => {
+    return file.filename;
+  });
+  compressFiles(names, level)
     .then((outfiles) => {
       if (outfiles.length > 1) {
         const parentDirectory = path.join(__dirname, "../../uploads/"); // Parent directory path
@@ -242,9 +331,6 @@ router.post("/pdf_compress", upload2.array("files"), async (req, res) => {
                 if (err) {
                   console.error(`Error deleting file ${file}:`, err);
                 }
-                // else {
-                //   console.log(`Deleted file: ${file}`);
-                // }
               });
             });
           });
