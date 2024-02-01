@@ -33,7 +33,7 @@ const splitPdf = (readPdf, pages, merge_flag, fileName) => {
           await newPdf.addPage(page);
         }
         let bytes = await newPdf.save();
-        let name = fileName.split(".")[0] + "_splitted(" + index + ").pdf";
+        let name = fileName.split(".")[0] + "_splitted_" + index + ".pdf";
         const outputPath = path.join("./temp_uploads/", name);
         await fs.promises.writeFile(outputPath, bytes);
         await outFiles.push(name);
