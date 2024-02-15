@@ -78,7 +78,7 @@ router.post(
         },
       };
 
-      jwt.sign(payload, jwtSecret, { expiresIn: "5 days" }, (err, token) => {
+      jwt.sign(payload, jwtSecret, { expiresIn: "1 days" }, (err, token) => {
         if (err) throw err;
         res.json({ token });
       });

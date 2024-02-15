@@ -4,7 +4,8 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const cron = require("node-cron");
 const connectDB = require("./config/db");
-const deleteOldFiles = require("./oldFileDelete/deleteOldFiles");
+const deleteOldFiles = require("./initialService/deleteOldFiles");
+const createAdmin = require("./initialService/createAdmin");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 
 // Define Routes
 app.use("/api/users", require("./routes/api/users"));
+app.use("/api/admin", require("./routes/api/admin"));
 app.use("/api/auth", require("./routes/api/auth"));
 app.use("/api/profile", require("./routes/api/profile"));
 app.use("/api/posts", require("./routes/api/posts"));
@@ -54,6 +56,9 @@ cron.schedule("0 * * * *", () => {
 
 // Example: Run the task immediately on server start (optional)
 deleteOldFiles();
+
+//create admin on server start
+createAdmin();
 
 const PORT = process.env.PORT || 5000;
 

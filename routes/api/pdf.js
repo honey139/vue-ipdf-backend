@@ -15,8 +15,10 @@ const fileSize = require("./fileSize");
 const wordToPdf = require("./wordToPdf");
 const pdfToWord = require("./pdfToWord");
 const splitPdf = require("./splitPdf");
+const auth = require("../../middleware/auth");
 
 const Pdf = require("../../models/Pdf");
+const Clients = require("../../models/Clients");
 
 // Set up Multer storage configuration
 const storage = multer.diskStorage({
@@ -146,7 +148,7 @@ router.post("/png_upload", upload4.array("files"), async (req, res) => {
   }
 });
 
-//delete merged pdf files
+//delete  pdf files
 router.get("/delete/:file", (req, res) => {
   console.log(req.params.file);
   const filePath = `uploads/${req.params.file}`; // Replace this with the path to your file
@@ -154,6 +156,11 @@ router.get("/delete/:file", (req, res) => {
     if (err) {
       res.status(500).send(err);
     }
+    Clients.findOne({ file: req.params.file }).then((clients) => {
+      clients.deleted = true;
+      clients.save();
+    });
+
     Pdf.deleteOne({ name: req.params.file }).then(() => {
       console.log("file name deleted from DB");
       res.send("delete success");
