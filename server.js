@@ -11,8 +11,9 @@ const app = express();
 
 app.use(cors());
 
-// Parse URL-encoded bodies (usually form data)
-app.use(bodyParser.urlencoded({ extended: false }));
+// Increase the limit to handle larger request bodies (e.g., file uploads)
+app.use(bodyParser.json({ limit: "200mb" }));
+app.use(bodyParser.urlencoded({ limit: "200mb", extended: true }));
 
 // Parse JSON bodies
 app.use(bodyParser.json());

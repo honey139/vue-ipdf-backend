@@ -13,6 +13,10 @@ async function deleteOldFiles() {
 
     filesToDelete.forEach(async (file) => {
       try {
+        await Clients.findOne({ file: file.name }).then((client) => {
+          client.deleted = true;
+          client.save();
+        });
         // Delete file from storage (assuming files are stored in a directory)
         fs.unlinkSync(`./uploads/${file.name}`);
 
@@ -20,10 +24,6 @@ async function deleteOldFiles() {
       } catch (error) {
         console.error(`Error deleting file ${file.name}:`, error);
       }
-      await Clients.findOne({ file: file.name }).then((client) => {
-        client.deleted = true;
-        client.save();
-      });
       // Delete file from the database
       await Pdf.findByIdAndDelete(file._id);
     });
