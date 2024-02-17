@@ -19,6 +19,7 @@ const auth = require("../../middleware/auth");
 
 const Pdf = require("../../models/Pdf");
 const Clients = require("../../models/Clients");
+const Blog = require("../../models/Blog");
 
 // Set up Multer storage configuration
 const storage = multer.diskStorage({
@@ -578,4 +579,57 @@ router.post("/pdf_to_word", upload2.array("files"), async (req, res) => {
       console.error(error);
     });
 });
+
+router.get("/latestBlogs", async (req, res) => {
+  Blog.find()
+    .sort({ uploadTime: -1 }) // Sort by createdAt in descending order
+    .limit(3) // Limit the results to 3 items
+    .exec((err, blogs) => {
+      if (err) {
+        res.status(400).json({ err: "not found blogs" });
+        return;
+      }
+      res.json(blogs);
+    });
+});
+
+router.get("/blog/:id", async (req, res) => {
+  Blog.findById(req.params.id)
+    .then((blog) => {
+      res.json(blog);
+    })
+    .catch((err) => {
+      res.status(400).json({ err: "Error" });
+    });
+});
+router.get("/nextBlog/:id", async (req, res) => {
+  const currentItem = await Blog.findById(req.params.id);
+
+  const criteria = { uploadTime: { $gt: currentItem.uploadTime } };
+
+  const nextItem = await Blog.findOne(criteria)
+    .sort({ uploadTime: 1 })
+    .limit(1);
+
+  if (nextItem) {
+    res.json(nextItem);
+  } else {
+    res.status(400).json({ err: "can't find item" });
+  }
+});
+router.get("/prevBlog/:id", async (req, res) => {
+  const currentItem = await Blog.findById(req.params.id);
+
+  const criteria = { uploadTime: { $lt: currentItem.uploadTime } };
+
+  const prevItem = await Blog.findOne(criteria)
+    .sort({ uploadTime: -1 })
+    .limit(1);
+  if (prevItem) {
+    res.json(prevItem);
+  } else {
+    res.status(400).json({ err: "can't find item" });
+  }
+});
+
 module.exports = router;

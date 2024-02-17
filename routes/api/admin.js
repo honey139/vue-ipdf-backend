@@ -4,12 +4,73 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const jwtSecret = require("../../config/jwtSecret");
 const os = require("os");
-const fs = require("fs");
-const si = require("systeminformation");
+const osUtils = require("os-utils");
+const { exec } = require("child_process");
+
+const checkDiskSpace = require("check-disk-space").default;
 
 const auth = require("../../middleware/auth");
 const Clients = require("../../models/Clients");
 const Blog = require("../../models/Blog");
+
+// Function to execute a shell command and return a promise
+function executeCommand(command) {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      if (stderr) {
+        reject(stderr);
+        return;
+      }
+      resolve(stdout);
+    });
+  });
+}
+
+// Function to parse network statistics output and calculate speeds
+function parseNetworkStats(output) {
+  const lines = output.split("\n");
+  let uploadSpeed = 0;
+  let downloadSpeed = 0;
+  lines.forEach((line) => {
+    if (line.includes("RX bytes")) {
+      const match = line.match(/RX bytes:(\d+) .* TX bytes:(\d+)/);
+      if (match) {
+        const bytesReceived = parseInt(match[1]);
+        const bytesSent = parseInt(match[2]);
+        // Assuming output is in bytes, convert to Mbps for speed calculation
+        downloadSpeed = bytesReceived / 1024 / 1024; // Convert bytes to megabytes
+        uploadSpeed = bytesSent / 1024 / 1024; // Convert bytes to megabytes
+      }
+    }
+  });
+  return { uploadSpeed, downloadSpeed };
+}
+
+// Function to get upload and download speeds
+async function getNetworkSpeeds() {
+  try {
+    let command = "";
+    if (process.platform === "linux") {
+      command = "ifconfig";
+    } else if (process.platform === "win32") {
+      command = "ipconfig";
+      isWindows = true;
+    } else {
+      throw new Error("Unsupported platform");
+    }
+
+    const output = await executeCommand(command);
+    const { uploadSpeed, downloadSpeed } = parseNetworkStats(output);
+
+    return `${uploadSpeed.toFixed(2)} Mbps / ${downloadSpeed.toFixed(2)} Mbps`;
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
+}
 
 // @route    POST api/admin/client
 // @desc     save client info
@@ -205,38 +266,62 @@ router.get("/serverstatus", auth, async (req, res) => {
 
   const cpus = os.cpus();
   const totalCores = cpus.length;
-  const totalMemory = os.totalmem();
-  const freeMemory = os.freemem();
+  let totalHz = 0;
+  await cpus.forEach((core) => {
+    totalHz += core.speed;
+  });
+  console.log("Total CPU Hz:", totalHz);
+
+  // Get CPU usage Hz
+  let cpuUsageHz = 0;
+  await osUtils.cpuUsage((cpuUsage) => {
+    cpuUsageHz = totalHz * cpuUsage;
+    console.log("CPU Usage Hz:", cpuUsageHz);
+  });
+  const totalMemory = await os.totalmem();
+  const freeMemory = await os.freemem();
 
   console.log(`Total Memory: ${totalMemory}`);
   console.log(`Free Memory: ${freeMemory}`);
 
-  si.networkStats()
-    .then((data) => {
-      console.log("Network Interface Stats:", data);
-    })
-    .catch((error) => {
-      console.error("Error retrieving network stats:", error);
+  let diskUsage = null;
+
+  if (process.platform === "linux") {
+    await checkDiskSpace("/").then((diskSpace) => {
+      diskUsage = diskSpace;
+      console.log(diskSpace);
     });
+  } else if (process.platform === "win32") {
+    await checkDiskSpace("C:/").then((diskSpace) => {
+      diskUsage = diskSpace;
+      console.log(diskSpace);
+    });
+  } else {
+    throw new Error("Unsupported platform");
+  }
 
-  fs.stat("/", function (err, stats) {
-    if (err) {
-      console.error(err);
-      return;
-    }
+  const bandWidth = await getNetworkSpeeds();
+  console.log(bandWidth);
 
-    // Output total size and usage size
-    const totalSizeGB = (stats.blocks * stats.blksize) / (1024 * 1024 * 1024);
-    const usedSizeGB =
-      stats.blocks * stats.blksize -
-      (stats.blocks * stats.blksize * stats.blocks * stats.blksize) /
-        (1024 * 1024 * 1024);
+  const cpuStatus = await `${(cpuUsageHz / 1000).toFixed(2)} GHz / ${(
+    totalHz / 1000
+  ).toFixed(2)} GHz`;
+  const memoryStatus = await `${(
+    (totalMemory - freeMemory) /
+    (1024 * 1024 * 1024)
+  ).toFixed(2)} GB / ${(totalMemory / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  const diskStatus = await `${(
+    (diskUsage.size - diskUsage.free) /
+    (1024 * 1024 * 1024)
+  ).toFixed(2)} GB / ${(diskUsage.size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 
-    console.log("Total Size:", totalSizeGB, "GB");
-    console.log("Used Size:", usedSizeGB, "GB");
-  });
-
-  res.json({ data: "success" });
+  const serverStatus = {
+    cpu: cpuStatus,
+    memory: memoryStatus,
+    disk: diskStatus,
+    bandWidth: bandWidth,
+  };
+  res.json(serverStatus);
 });
 
 module.exports = router;
