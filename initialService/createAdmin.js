@@ -3,9 +3,23 @@ const User = require("../models/User");
 const gravatar = require("gravatar");
 const normalize = require("normalize-url");
 
-function createAdmin() {
+async function createAdmin() {
+  const name = "Admin";
+  const salt = await bcrypt.genSalt(10);
+  const password = await bcrypt.hash("123456", salt);
+  const email = "test@admin.com";
+
+  const avatar = normalize(
+    gravatar.url(email, {
+      s: "200",
+      r: "pg",
+      d: "mm",
+    }),
+    { forceHttps: true }
+  );
+
   // Check if admin user exists, if not, create one
-  User.findOne({ name: "admin" }, async (err, existingAdmin) => {
+  User.findOne({ name: name }, async (err, existingAdmin) => {
     if (err) {
       console.error(err);
       return;
@@ -13,25 +27,14 @@ function createAdmin() {
 
     if (!existingAdmin) {
       // Encrypt the password
-      const salt = await bcrypt.genSalt(10);
-      const password = await bcrypt.hash("123456", salt);
-
-      const avatar = normalize(
-        gravatar.url("admin@admin.com", {
-          s: "200",
-          r: "pg",
-          d: "mm",
-        }),
-        { forceHttps: true }
-      );
 
       // Create admin user
-      const adminUser = new User({
-        name: "admin",
-        email: "admin@admin.com",
+      adminUser = new User({
+        name: name,
+        email: email,
         password: password,
         avatar: avatar,
-        isAdmin: true,
+        isAdmin: 1,
       });
 
       adminUser.save((err) => {

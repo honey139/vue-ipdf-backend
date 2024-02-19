@@ -75,6 +75,7 @@ router.post(
           id: user._id,
           email: user.email,
           avatar: user.avatar,
+          isAdmin: user.isAdmin,
         },
       };
 
