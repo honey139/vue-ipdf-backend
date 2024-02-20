@@ -77,7 +77,6 @@ async function getNetworkSpeeds() {
 // @access   Public
 router.post("/client", async (req, res) => {
   //Retrieve the info from post request
-  console.log(req.body);
   const { ip, browser, downUrl, workUrl, file } = req.body;
 
   try {
@@ -98,7 +97,7 @@ router.post("/client", async (req, res) => {
 
     await clients.save();
 
-    res.json({ token });
+    res.json({ msg: "success" });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
@@ -170,10 +169,9 @@ router.get("/files", auth, async (req, res) => {
     return res.status(400).json({ errors: [{ msg: "Invalid Admin" }] });
   }
 
-  await Clients.find(
-    {},
-    "downUrl deleted workUrl ip timestamp",
-    function (err, clients) {
+  await Clients.find()
+    .sort({ timestamp: -1 }) // Sort by createdAt in descending order
+    .exec((err, clients) => {
       if (err) {
         res.status(400).json({ error: [{ msg: "Server Error" }] });
         // Handle error
@@ -181,8 +179,7 @@ router.get("/files", auth, async (req, res) => {
         // Handle clients data
         res.json({ data: clients });
       }
-    }
-  );
+    });
 });
 
 router.get("/blogs", auth, async (req, res) => {
@@ -191,15 +188,18 @@ router.get("/blogs", auth, async (req, res) => {
     return res.status(400).json({ errors: [{ msg: "Invalid Admin" }] });
   }
 
-  await Blog.find({}, function (err, blogs) {
-    if (err) {
-      res.status(400).json({ error: [{ msg: "Server Error" }] });
-      // Handle error
-    } else {
-      // Handle clients data
-      res.json(blogs);
-    }
-  });
+  await Blog.find()
+    .sort({ uploadTime: -1 }) // Sort by createdAt in descending order
+
+    .exec({}, function (err, blogs) {
+      if (err) {
+        res.status(400).json({ error: [{ msg: "Server Error" }] });
+        // Handle error
+      } else {
+        // Handle clients data
+        res.json(blogs);
+      }
+    });
 });
 
 router.delete("/blog/:id", auth, async (req, res) => {
@@ -224,9 +224,10 @@ router.put("/blog/:id", auth, async (req, res) => {
 
   // Extract the ID from the request parameters
   const itemId = req.params.id;
+  const upData = JSON.parse(req.body.data);
 
   // Find the item by ID and update it with the new data
-  const updatedItem = await Blog.findByIdAndUpdate(itemId, req.body, {
+  const updatedItem = await Blog.findByIdAndUpdate(itemId, upData, {
     new: true,
   });
 
@@ -244,11 +245,14 @@ router.post("/blog", auth, async (req, res) => {
   if (!user.isAdmin) {
     return res.status(400).json({ errors: [{ msg: "Invalid Admin" }] });
   }
-  const { title, img, content } = req.body;
+  const blogData = JSON.parse(req.body.data);
+  const { title, img, content, available, metaData } = blogData;
   blog = new Blog({
     title,
     img,
     content,
+    available,
+    metaData,
   });
 
   await blog.save();

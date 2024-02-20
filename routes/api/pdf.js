@@ -593,43 +593,29 @@ router.get("/latestBlogs", async (req, res) => {
     });
 });
 
-router.get("/blog/:id", async (req, res) => {
-  Blog.findById(req.params.id)
-    .then((blog) => {
-      res.json(blog);
-    })
-    .catch((err) => {
-      res.status(400).json({ err: "Error" });
+router.get("/allBlogs", async (req, res) => {
+  Blog.find()
+    .sort({ uploadTime: -1 }) // Sort by createdAt in descending order
+    .exec((err, blogs) => {
+      if (err) {
+        res.status(400).json({ err: "not found blogs" });
+        return;
+      }
+      res.json(blogs);
     });
 });
-router.get("/nextBlog/:id", async (req, res) => {
-  const currentItem = await Blog.findById(req.params.id);
 
-  const criteria = { uploadTime: { $gt: currentItem.uploadTime } };
-
-  const nextItem = await Blog.findOne(criteria)
-    .sort({ uploadTime: 1 })
-    .limit(1);
-
-  if (nextItem) {
-    res.json(nextItem);
-  } else {
-    res.status(400).json({ err: "can't find item" });
-  }
-});
-router.get("/prevBlog/:id", async (req, res) => {
-  const currentItem = await Blog.findById(req.params.id);
-
-  const criteria = { uploadTime: { $lt: currentItem.uploadTime } };
-
-  const prevItem = await Blog.findOne(criteria)
-    .sort({ uploadTime: -1 })
-    .limit(1);
-  if (prevItem) {
-    res.json(prevItem);
-  } else {
-    res.status(400).json({ err: "can't find item" });
-  }
+router.get("/blog/:id", async (req, res) => {
+  const blog = await Blog.findById(req.params.id);
+  await Blog.find({}, "id title", function (err, blogs) {
+    if (err) {
+      res.status(400).json({ error: [{ msg: "Server Error" }] });
+      // Handle error
+    } else {
+      // Handle clients data
+      res.json({ blog: blog, titles: blogs });
+    }
+  });
 });
 
 module.exports = router;

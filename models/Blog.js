@@ -11,6 +11,13 @@ const BlogSchema = new mongoose.Schema({
   content: {
     type: String,
   },
+  available: {
+    type: Boolean,
+    default: true,
+  },
+  metaData: {
+    type: Array,
+  },
   uploadTime: {
     type: Date,
     default: Date.now,

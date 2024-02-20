@@ -10,8 +10,7 @@ const expressFile = (files, level) => {
       let ghostScriptCommand = "";
       if (process.platform === "linux") {
         ghostScriptCommand = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
-      }
-      if (process.platform == "windows") {
+      } else {
         ghostScriptCommand = `gswin64c -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -dDownsampleColorImages=true -dColorImageResolution=${level} -sOutputFile=${outputFilePath} ${inputFilePath}`;
       }
 

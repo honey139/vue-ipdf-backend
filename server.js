@@ -9,6 +9,12 @@ const createAdmin = require("./initialService/createAdmin");
 
 const app = express();
 
+const http = require("http");
+const socketIO = require("socket.io");
+
+const server = http.createServer(app);
+const io = socketIO(server);
+
 app.use(cors());
 
 // Increase the limit to handle larger request bodies (e.g., file uploads)
@@ -61,6 +67,48 @@ deleteOldFiles();
 //create admin on server start
 createAdmin();
 
+let clientsData = [];
+
+let socketss = [];
+io.on("connection", (socket) => {
+  socketss.push(socket);
+  // Add client data when a client connects
+  const item = clientsData.filter((data) => data.socketId == socket.id);
+  if (item.length == 0) {
+    clientsData.push({ socketId: socket.id, data: null });
+  }
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+    // Remove client data when a client disconnects
+    clientsData = clientsData.filter((data) => data.socketId != socket.id);
+    socketss = socketss.filter((data) => data.id != socket.id);
+  });
+});
+app.get("/api/client_data", async (req, res) => {
+  await getClientsData(clientsData, socketss).then((clientsData) => {
+    return res.json(clientsData);
+  });
+});
+function getClientsData(clientsData, socketss) {
+  return new Promise(async (resolve, reject) => {
+    await clientsData.forEach((client) => {
+      io.to(client.socketId).emit("requestData", {
+        /* request data */
+      });
+    });
+    await socketss.forEach(async (socket, index) => {
+      await socket.on("clientData", (data) => {
+        if (data) {
+          clientsData[index].data = data;
+        }
+        if (index == clientsData.length - 1) {
+          resolve(clientsData);
+        }
+      });
+    });
+  });
+}
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
