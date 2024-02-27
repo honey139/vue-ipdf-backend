@@ -605,8 +605,10 @@ router.get("/allBlogs", async (req, res) => {
     });
 });
 
-router.get("/blog/:id", async (req, res) => {
-  const blog = await Blog.findById(req.params.id);
+router.get("/blog/:title", async (req, res) => {
+  const title = req.params.title.replace(/-/g, " ");
+  const blog = await Blog.findOne({ title: title });
+  // const blog = await Blog.findById(req.params.id);
   await Blog.find({}, "id title", function (err, blogs) {
     if (err) {
       res.status(400).json({ error: [{ msg: "Server Error" }] });
