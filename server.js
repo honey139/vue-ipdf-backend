@@ -47,6 +47,10 @@ app.get("/uploads/:filename", (req, res) => {
   const filename = req.params.filename;
   res.sendFile(path.join(__dirname, "uploads", filename));
 });
+app.get("/img/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "uploads", filename));
+});
 
 // Schedule the deletion task to run every hour
 cron.schedule("0 * * * *", () => {
