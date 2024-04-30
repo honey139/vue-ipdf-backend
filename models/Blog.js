@@ -16,7 +16,7 @@ const BlogSchema = new mongoose.Schema({
     default: true,
   },
   metaData: {
-    type: Array,
+    type: Object,
   },
   uploadTime: {
     type: Date,
