@@ -226,7 +226,7 @@ router.put("/blog/:id", auth, async (req, res) => {
   // Extract the ID from the request parameters
   const itemId = req.params.id;
   const upData = JSON.parse(req.body.data);
-  const { img, metaData } = blogData;
+  const { img, metaData } = upData;
 
   const lastIndex = metaData.image.lastIndexOf("/");
 
