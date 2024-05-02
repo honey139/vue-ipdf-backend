@@ -606,18 +606,18 @@ router.get("/allBlogs", async (req, res) => {
 });
 
 router.get("/blog/:title", async (req, res) => {
-  const title = req.params.title.replace(/-/g, " ");
-  const blog = await Blog.findOne({ title: title });
-  // const blog = await Blog.findById(req.params.id);
-  await Blog.find({}, "id title", function (err, blogs) {
-    if (err) {
-      res.status(400).json({ error: [{ msg: "Server Error" }] });
-      // Handle error
-    } else {
-      // Handle clients data
-      res.json({ blog: blog, titles: blogs });
-    }
-  });
+  try {
+    const title = req.params.title.replace(/-/g, " ");
+    const blog = await Blog.findOne({
+      title: { $regex: new RegExp(title, "i") },
+    });
+    const blogs = await Blog.find({}, "id title");
+
+    res.json({ blog: blog, titles: blogs });
+  } catch (err) {
+    res.status(400).json({ error: [{ msg: "Server Error" }] });
+    // Handle error
+  }
 });
 
 module.exports = router;

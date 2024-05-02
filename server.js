@@ -18,8 +18,8 @@ const io = socketIO(server);
 app.use(cors());
 
 // Increase the limit to handle larger request bodies (e.g., file uploads)
-app.use(bodyParser.json({ limit: "200mb" }));
-app.use(bodyParser.urlencoded({ limit: "200mb", extended: true }));
+app.use(bodyParser.json({ limit: "2000mb" }));
+app.use(bodyParser.urlencoded({ limit: "2000mb", extended: true }));
 
 // Parse JSON bodies
 app.use(bodyParser.json());
@@ -27,9 +27,9 @@ app.use(bodyParser.json());
 // Connect Database
 connectDB();
 
-// app.get("/", (req, res) => {
-//   res.send("API running");
-// });
+app.get("/", (req, res) => {
+  res.send("API running");
+});
 
 // Define Routes
 app.use("/api/users", require("./routes/api/users"));
@@ -58,12 +58,12 @@ cron.schedule("0 * * * *", () => {
 });
 
 // Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, "dist")));
+//app.use(express.static(path.join(__dirname, "dist")));
 
 // Handle any routes by serving the 'index.html' file
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
+//app.get("*", (req, res) => {
+//  res.sendFile(path.join(__dirname, "dist", "index.html"));
+//});
 
 // Example: Run the task immediately on server start (optional)
 deleteOldFiles();
