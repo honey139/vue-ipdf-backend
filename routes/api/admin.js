@@ -12,6 +12,7 @@ const checkDiskSpace = require("check-disk-space").default;
 const auth = require("../../middleware/auth");
 const Clients = require("../../models/Clients");
 const Blog = require("../../models/Blog");
+const fs = require("fs");
 
 // Function to execute a shell command and return a promise
 function executeCommand(command) {
@@ -247,18 +248,49 @@ router.post("/blog", auth, async (req, res) => {
   }
   const blogData = JSON.parse(req.body.data);
   const { title, img, content, available, metaData } = blogData;
-  blog = new Blog({
-    title,
-    img,
-    content,
-    available,
-    metaData,
-  });
 
-  await blog.save();
+  const lastIndex = metaData.image.lastIndexOf("/");
 
-  Blog.find().then((blogs) => {
-    res.json(blogs);
+  // Extract the filename using substring
+  const filename = metaData.image.substring(lastIndex + 1);
+  const filePath = `./blog/${filename}`; // Assuming the blog folder exists in the project's root directory
+
+  // Parse base64 image data
+  const imgData = img.replace(/^data:image\/\w+;base64,/, "");
+  const buf = Buffer.from(imgData, "base64");
+
+  // Write the image data to a file
+  fs.writeFile(filePath, buf, (err) => {
+    if (err) {
+      console.error(err);
+      return res
+        .status(500)
+        .json({ errors: [{ msg: "Failed to save image" }] });
+    }
+
+    // Image saved successfully, continue saving blog data to the database
+    const blog = new Blog({
+      title,
+      img: filename, // Save the filename in the database instead of base64 data
+      content,
+      available,
+      metaData,
+    });
+
+    blog
+      .save()
+      .then(() => {
+        // Retrieve all blogs and send the response
+        Blog.find().then((blogs) => {
+          res.json(blogs);
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        return res
+          .status(500)
+          .json({ errors: [{ msg: "Failed to save blog data" }] });
+      });
   });
 });
 
