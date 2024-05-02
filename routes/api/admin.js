@@ -226,19 +226,46 @@ router.put("/blog/:id", auth, async (req, res) => {
   // Extract the ID from the request parameters
   const itemId = req.params.id;
   const upData = JSON.parse(req.body.data);
+  const { img, metaData } = blogData;
 
-  // Find the item by ID and update it with the new data
-  const updatedItem = await Blog.findByIdAndUpdate(itemId, upData, {
-    new: true,
-  });
+  const lastIndex = metaData.image.lastIndexOf("/");
 
-  // Check if the item was found and updated
-  if (!updatedItem) {
-    return res.status(404).json({ message: "Item not found" });
+  // Extract the filename using substring
+  const filename = metaData.image.substring(lastIndex + 1);
+  const filePath = `./blog/${filename}`; // Assuming the blog folder exists in the project's root directory
+
+  // Parse base64 image data
+  const imgData = img.replace(/^data:image\/\w+;base64,/, "");
+  const buf = Buffer.from(imgData, "base64");
+
+  // Write the image data to a file
+  fs.writeFile(filePath, buf, async (err) => {
+  if (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ errors: [{ msg: "Failed to save image" }] });
   }
 
-  // Send a success response with the updated item
-  res.status(200).json(updatedItem);
+  try {
+    // Find the item by ID and update it with the new data
+    const updatedItem = await Blog.findByIdAndUpdate(itemId, upData, {
+      new: true,
+    });
+
+    // Check if the item was found and updated
+    if (!updatedItem) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Send a success response with the updated item
+    res.status(200).json(updatedItem);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ errors: [{ msg: "Server error" }] });
+  }
+});
+ 
 });
 
 router.post("/blog", auth, async (req, res) => {
