@@ -605,15 +605,14 @@ router.get("/allBlogs", async (req, res) => {
     });
 });
 
-router.get("/blog/:title", async (req, res) => {
+router.get("/blog/:url", async (req, res) => {
   try {
-    const title = req.params.title.replace(/-/g, " ");
     const blog = await Blog.findOne({
-      title: { $regex: new RegExp(title, "i") },
+      url: { $regex: new RegExp(url, "i") },
     });
-    const blogs = await Blog.find({}, "id title");
+    const blogs = await Blog.find({}, "id url");
 
-    res.json({ blog: blog, titles: blogs });
+    res.json({ blog: blog, urls: blogs });
   } catch (err) {
     res.status(400).json({ error: [{ msg: "Server Error" }] });
     // Handle error
