@@ -247,7 +247,7 @@ router.post("/blog", auth, async (req, res) => {
     return res.status(400).json({ errors: [{ msg: "Invalid Admin" }] });
   }
   const blogData = JSON.parse(req.body.data);
-  const { title, img, content, available, metaData } = blogData;
+  const { url, title, img, content, available, metaData } = blogData;
 
   const lastIndex = metaData.image.lastIndexOf("/");
 
@@ -270,6 +270,7 @@ router.post("/blog", auth, async (req, res) => {
 
     // Image saved successfully, continue saving blog data to the database
     const blog = new Blog({
+      url,
       title,
       img: filename, // Save the filename in the database instead of base64 data
       content,
