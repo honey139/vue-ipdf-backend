@@ -606,6 +606,7 @@ router.get("/allBlogs", async (req, res) => {
 });
 
 router.get("/blog/:url", async (req, res) => {
+  const url = req.params.url;
   try {
     const blog = await Blog.findOne({
       url: { $regex: new RegExp(url, "i") },
