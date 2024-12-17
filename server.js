@@ -13,6 +13,10 @@ const http = require("http");
 const socketIO = require("socket.io");
 
 const server = http.createServer(app);
+
+// Set the timeout to 5 minutes (300000 milliseconds)
+server.setTimeout(600000); // Adjust the timeout value as needed
+
 const io = socketIO(server);
 
 app.use(cors());
